@@ -387,7 +387,6 @@ export default function FormBuilder() {
             {element.label}
           </button>
         );
-
       default:
         return null;
     }
@@ -585,7 +584,6 @@ export default function FormBuilder() {
                 </button>
               ))}
             </div>
-
             <h2 className="text-lg font-semibold mt-6 mb-3">Network</h2>
             <div className="grid grid-cols-2 gap-3">
               {networkElements.map((el) => (

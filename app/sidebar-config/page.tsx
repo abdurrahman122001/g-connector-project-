@@ -240,16 +240,15 @@ export default function SidebarConfigPage() {
   const saveEditSub = async (parentId: string, subId: string) => {
     const changes = editingSub[subId];
     if (!changes) return;
-    if (!changes.name?.trim() || !changes.href?.trim()) return;
+    if (!changes.name?.trim() || !changes.href?.trim()) return; // enforce href for sub
     try {
+      const payload = { ...changes, roles: typeof changes.roles === 'string' ? (changes.roles as string).split(',').map((r) => r.trim()).filter(Boolean) : changes.roles };
       const updatedParent = await fetchJSON<NavItem>(`${BASE_URL}/sidebar/${parentId}/sub-items/${subId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(changes),
+        body: JSON.stringify(payload),
       });
-      setItems((prev) =>
-        prev.map((i) => (i._id === parentId ? { ...updatedParent, subItems: updatedParent.subItems || [] } : i)),
-      );
+      setItems((prev) => prev.map((i) => (i._id === parentId ? { ...updatedParent, subItems: updatedParent.subItems || [] } : i)));
       cancelEditSub(subId);
     } catch (e: any) {
       alert(e.message || 'Failed to save sub-menu');
