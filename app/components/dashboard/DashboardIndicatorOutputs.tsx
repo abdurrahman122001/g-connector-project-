@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState, useEffect, useImperativeHandle } from 'react';
 import { getDashboardOutputs, DashboardOutput } from '../../services/dataWarehouseApi';
 import {
@@ -106,12 +106,12 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
   };
 
   const renderChart = (output: DashboardOutput) => {
-    const { type, data } = output;
+    const { type, data, id } = output;
 
     // Add safety checks for data
     if (!data) {
       return (
-        <div className="text-center p-4 text-gray-500">
+        <div key={`no-data-${id}`} className="text-center p-4 text-gray-500">
           <div className="bg-gray-100 rounded-lg p-4 mb-2">
             <div className="text-lg font-semibold text-gray-700 mb-2">No Data Available</div>
             <div className="text-sm text-gray-600">Chart type: {type}</div>
@@ -123,14 +123,14 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
     switch (type) {
       case 'numeric_value':
         return (
-          <div className="text-center p-4">
+          <div key={`numeric-${id}`} className="text-center p-4">
             {formatNumericValue(data)}
           </div>
         );
 
       case 'pie_chart':
         return (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer key={`pie-${id}`} width="100%" height={200}>
             <PieChart>
               <Pie
                 data={data.labels?.map((label: string, index: number) => ({
@@ -146,7 +146,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
                 label={({ name, value }) => `${name}: ${value}`}
               >
                 {data.labels?.map((_: string, index: number) => (
-                  <Cell key={`cell-${index}`} fill={data.colors?.[index] || COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${id}-${index}`} fill={data.colors?.[index] || COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
@@ -157,7 +157,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
 
       case 'donut_chart':
         return (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer key={`donut-${id}`} width="100%" height={200}>
             <PieChart>
               <Pie
                 data={data.labels?.map((label: string, index: number) => ({
@@ -174,7 +174,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
                 label={({ name, value }) => `${name}: ${value}`}
               >
                 {data.labels?.map((_: string, index: number) => (
-                  <Cell key={`cell-${index}`} fill={data.colors?.[index] || COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${id}-${index}`} fill={data.colors?.[index] || COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
@@ -192,7 +192,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
         })) || [];
         
         return (
-          <div className="bg-white p-4 rounded-lg shadow-sm">
+          <div key={`bar-${id}`} className="bg-white p-4 rounded-lg shadow-sm">
             <h4 className="text-sm font-medium text-gray-700 mb-2">{output.name}</h4>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={barData}>
@@ -206,11 +206,9 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
           </div>
         );
 
-
-
       case 'line_chart':
         return (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer key={`line-${id}`} width="100%" height={200}>
             <LineChart data={data.labels?.map((label: string, index: number) => ({
               label,
               ...data.datasets?.reduce((acc: any, dataset: any, datasetIndex: number) => {
@@ -225,7 +223,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
               <Legend />
               {data.datasets?.map((dataset: any, index: number) => (
                 <Line 
-                  key={index}
+                  key={`line-${id}-${index}`}
                   type="monotone" 
                   dataKey={`value${index}`} 
                   stroke={dataset.borderColor || COLORS[index % COLORS.length]}
@@ -239,7 +237,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
 
       case 'area_chart':
         return (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer key={`area-${id}`} width="100%" height={200}>
             <AreaChart data={data.labels?.map((label: string, index: number) => ({
               label,
               ...data.datasets?.reduce((acc: any, dataset: any, datasetIndex: number) => {
@@ -254,7 +252,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
               <Legend />
               {data.datasets?.map((dataset: any, index: number) => (
                 <Area 
-                  key={index}
+                  key={`area-${id}-${index}`}
                   type="monotone" 
                   dataKey={`value${index}`} 
                   stroke={dataset.borderColor || COLORS[index % COLORS.length]}
@@ -276,7 +274,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
         });
 
         return (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer key={`stacked-${id}`} width="100%" height={200}>
             <BarChart data={stackedData} layout={data.orientation === 'horizontal' ? 'horizontal' : 'vertical'}>
               <CartesianGrid strokeDasharray="3 3" />
               {data.orientation === 'horizontal' ? (
@@ -294,7 +292,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
               <Legend />
               {data.datasets?.map((dataset: any, index: number) => (
                 <Bar 
-                  key={index}
+                  key={`stacked-${id}-${index}`}
                   dataKey={dataset.label} 
                   stackId="a" 
                   fill={dataset.backgroundColor || COLORS[index % COLORS.length]}
@@ -314,7 +312,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
         });
 
         return (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer key={`radar-${id}`} width="100%" height={200}>
             <RadarChart data={radarData}>
               <PolarGrid />
               <PolarAngleAxis dataKey="label" />
@@ -323,7 +321,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
               <Legend />
               {data.datasets?.map((dataset: any, index: number) => (
                 <Radar 
-                  key={index}
+                  key={`radar-${id}-${index}`}
                   name={dataset.label}
                   dataKey={dataset.label}
                   stroke={dataset.borderColor || COLORS[index % COLORS.length]}
@@ -337,7 +335,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
 
       case 'map_chart':
         return (
-          <div className="p-4">
+          <div key={`map-${id}`} className="p-4">
             <div className="bg-gray-100 rounded-lg p-4 text-center">
               <div className="text-gray-600 mb-2">🗺️ Map Visualization</div>
               <div className="text-sm text-gray-500">
@@ -352,7 +350,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
 
       case 'heatmap_chart':
         return (
-          <div className="p-4">
+          <div key={`heatmap-${id}`} className="p-4">
             <div className="bg-gray-100 rounded-lg p-4 text-center">
               <div className="text-gray-600 mb-2">🔥 Heatmap Visualization</div>
               <div className="text-sm text-gray-500">
@@ -367,7 +365,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
 
       case 'choropleth_chart':
         return (
-          <div className="p-4">
+          <div key={`choropleth-${id}`} className="p-4">
             <div className="bg-gray-100 rounded-lg p-4 text-center">
               <div className="text-gray-600 mb-2">🎨 Choropleth Map</div>
               <div className="text-sm text-gray-500">
@@ -395,7 +393,7 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
         }
         
         return (
-          <div className="text-center p-4 text-gray-500">
+          <div key={`unsupported-${id}`} className="text-center p-4 text-gray-500">
             <div className="bg-gray-100 rounded-lg p-4 mb-2">
               <div className="text-lg font-semibold text-gray-700 mb-2">Unsupported Chart Type</div>
               <div className="text-sm text-gray-600 mb-2">Type: "{type}" (length: {type?.length || 0})</div>
@@ -454,8 +452,8 @@ const DashboardIndicatorOutputs = React.forwardRef<{ refresh: () => void }, Dash
   return (
     <div className={`${className}`}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {outputs.map((output) => (
-          <div key={output.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
+        {outputs.map((output, index) => (
+          <div key={`dashboard-output-${output.id}-${index}`} className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 border-b border-gray-100">
               <h3 className="text-sm font-medium text-gray-900">{output.name}</h3>
               <p className="text-xs text-gray-500 mt-1">{output.description}</p>

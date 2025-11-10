@@ -1,48 +1,39 @@
 // next.config.js
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Remove experimental flag if not needed for other features
-  // experimental: {
-  //   turbo: {
-  //     // Turbopack configuration if needed
-  //   },
-  // },
-  
-  // API rewrites for local development
+  reactStrictMode: true,
+
+  // Reduce hydration mismatch from browser extensions
+  onDemandEntries: {
+    maxInactiveAge: 1000 * 60 * 60, // 1 hour
+  },
+
+  // API rewrites for backend proxy
   async rewrites() {
     return [
       {
-        source: '/api/:path*',
-        destination: 'http://localhost:5001/api/:path*', // Your backend URL
+        source: "/api/:path*",
+        destination: "http://localhost:5001/api/:path*", // Your backend URL
       },
     ];
   },
 
-  // Security headers for API proxies
+  // CORS headers for backend API
   async headers() {
     return [
       {
-        source: '/api/:path*',
+        source: "/api/:path*",
         headers: [
-          { key: 'Access-Control-Allow-Origin', value: 'http://localhost:3000' }, // Specific to your frontend
-          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PUT,DELETE,OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
-          { key: 'Access-Control-Allow-Credentials', value: 'true' },
+          { key: "Access-Control-Allow-Origin", value: "http://localhost:3000" },
+          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
+          { key: "Access-Control-Allow-Credentials", value: "true" },
         ],
       },
     ];
   },
-
-  // Optional: Enable if you need to troubleshoot Turbopack
-  // webpack: (config, { isServer }) => {
-  //   if (!isServer) {
-  //     config.resolve.fallback = {
-  //       ...config.resolve.fallback,
-  //       fs: false,
-  //     };
-  //   }
-  //   return config;
-  // },
 };
 
+// ✅ ESM export for Next.js 13–15
 export default nextConfig;

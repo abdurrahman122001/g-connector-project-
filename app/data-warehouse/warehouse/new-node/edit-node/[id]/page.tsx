@@ -73,6 +73,14 @@ export default function EditNodePage() {
   const [editingScript, setEditingScript] = useState(false);
   const [scriptLoading, setScriptLoading] = useState(false);
 
+  // Get authentication token safely
+  const getAuthToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('token') || sessionStorage.getItem('token');
+    }
+    return null;
+  };
+
   useEffect(() => {
     if (nodeId) {
       fetchNodeData();
@@ -97,6 +105,18 @@ export default function EditNodePage() {
     });
   }, [selectedForms]);
 
+  // Debug: Check for duplicate form IDs
+  useEffect(() => {
+    if (selectedForms.length > 0) {
+      const duplicates = selectedForms.filter((item, index) => selectedForms.indexOf(item) !== index);
+      if (duplicates.length > 0) {
+        console.warn('Duplicate form IDs found:', duplicates);
+        // Auto-clean duplicates
+        setSelectedForms(prev => [...new Set(prev)]);
+      }
+    }
+  }, [selectedForms]);
+
   const fetchNodeData = async () => {
     try {
       setFetching(true);
@@ -112,7 +132,8 @@ export default function EditNodePage() {
         existingFunctionName: node.scriptColumn?.functionName || ""
       });
       
-      setSelectedForms(node.linkedForms || []);
+      // Ensure no duplicates in selected forms
+      setSelectedForms([...new Set(node.linkedForms || [])]);
       setRun(node.status === 'active');
       
       // Pre-populate selected variables
@@ -142,7 +163,7 @@ export default function EditNodePage() {
     }
   };
 
-  // Function to load and display script content
+  // Function to load and display script content - FIXED URL
   const handleViewScript = async () => {
     if (!formData.existingScriptFile) {
       setError("No script file available to view.");
@@ -153,37 +174,51 @@ export default function EditNodePage() {
       setScriptLoading(true);
       setError("");
       
-      // Fetch the script file content
-      const response = await fetch(`/api/data-warehouse/script-content?filePath=${encodeURIComponent(formData.existingScriptFile)}`, {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error("Authentication token not found. Please log in again.");
+      }
+
+      // Use the full backend URL with Express routes
+      const response = await fetch(`http://localhost:3000/api/data-warehouse/script-content?filePath=${encodeURIComponent(formData.existingScriptFile)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
       });
 
+      if (response.status === 403) {
+        throw new Error("Access denied. You don't have permission to view this script.");
+      }
+
+      if (response.status === 401) {
+        throw new Error("Authentication required. Please log in again.");
+      }
+
       if (!response.ok) {
-        throw new Error('Failed to load script file');
+        const errorText = await response.text();
+        throw new Error(`Failed to load script: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
       
-      if (result.success) {
+      if (result.success && result.data?.content !== undefined) {
         setScriptContent(result.data.content);
         setShowScriptEditor(true);
         setEditingScript(false);
       } else {
-        throw new Error(result.error || 'Failed to load script');
+        throw new Error(result.error || 'Invalid response format from server');
       }
     } catch (error) {
       console.error("Error loading script:", error);
-      setError("Failed to load script file. Please try again.");
+      setError(error.message || "Failed to load script file. Please try again.");
     } finally {
       setScriptLoading(false);
     }
   };
 
-  // Function to save edited script
+  // Function to save edited script - FIXED URL
   const handleSaveScript = async () => {
     if (!formData.existingScriptFile) {
       setError("No script file path available.");
@@ -193,11 +228,17 @@ export default function EditNodePage() {
     try {
       setScriptLoading(true);
       
-      const response = await fetch('/api/data-warehouse/update-script', {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error("Authentication token not found. Please log in again.");
+      }
+
+      // Use the full backend URL with Express routes
+      const response = await fetch('http://localhost:3000/api/data-warehouse/update-script', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           filePath: formData.existingScriptFile,
@@ -205,8 +246,16 @@ export default function EditNodePage() {
         }),
       });
 
+      if (response.status === 403) {
+        throw new Error("Access denied. You don't have permission to update this script.");
+      }
+
+      if (response.status === 401) {
+        throw new Error("Authentication required. Please log in again.");
+      }
+
       if (!response.ok) {
-        throw new Error('Failed to save script');
+        throw new Error(`Failed to save script: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -221,28 +270,68 @@ export default function EditNodePage() {
       }
     } catch (error) {
       console.error("Error saving script:", error);
-      setError("Failed to save script. Please try again.");
+      setError(error.message || "Failed to save script. Please try again.");
     } finally {
       setScriptLoading(false);
     }
   };
 
-  // Function to download script file
-  const handleDownloadScript = () => {
+  // Function to download script file - FIXED URL
+  const handleDownloadScript = async () => {
     if (!formData.existingScriptFile) return;
     
-    const link = document.createElement('a');
-    link.href = `/api/data-warehouse/download-script?filePath=${encodeURIComponent(formData.existingScriptFile)}`;
-    link.download = formData.existingScriptFile.split('/').pop() || 'script.py';
-    link.click();
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        setError("Authentication token not found. Please log in again.");
+        return;
+      }
+
+      // Use the full backend URL with Express routes
+      const response = await fetch(`http://localhost:3000/api/data-warehouse/download-script?filePath=${encodeURIComponent(formData.existingScriptFile)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      if (response.status === 403) {
+        throw new Error("Access denied. You don't have permission to download this script.");
+      }
+
+      if (response.status === 401) {
+        throw new Error("Authentication required. Please log in again.");
+      }
+
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = formData.existingScriptFile.split('/').pop() || 'script.py';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading script:", error);
+      setError(error.message || "Failed to download script.");
+    }
   };
 
   const handleFormToggle = (formId: string) => {
-    setSelectedForms((prev) =>
-      prev.includes(formId)
+    setSelectedForms((prev) => {
+      const newSelectedForms = prev.includes(formId)
         ? prev.filter((id) => id !== formId)
-        : [...prev, formId]
-    );
+        : [...prev, formId];
+      
+      // Ensure no duplicates using Set
+      return [...new Set(newSelectedForms)];
+    });
+    
     setSelectedVariables((prev) => {
       if (prev[formId]) {
         // Form is being deselected, remove its variables
@@ -327,7 +416,7 @@ export default function EditNodePage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl"> {/* Increased max width */}
+      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl">
         <h3 className="text-2xl font-bold mb-6 text-center">Edit Node</h3>
         
         {/* Error Message */}
@@ -443,7 +532,7 @@ export default function EditNodePage() {
                 <div className="text-gray-400 text-xs">No forms available</div>
               ) : (
                 forms.map((form) => (
-                  <div key={form.id} className="flex items-center py-1">
+                  <div key={`form-${form.id}`} className="flex items-center py-1">
                     <input
                       type="checkbox"
                       id={`form-${form.id}`}
@@ -460,13 +549,14 @@ export default function EditNodePage() {
             </div>
           </div>
 
-          {/* Variables per form */}
-          {selectedForms.map((formId) => {
+          {/* Variables per form - FIXED DUPLICATE KEYS */}
+          {selectedForms.map((formId, formIndex) => {
             const form = forms.find((f) => f.id === formId);
             if (!form) return null;
             const fields = formStructures[formId] || [];
+            
             return (
-              <div key={formId} className="mt-2">
+              <div key={`form-section-${formId}-${formIndex}`} className="mt-2">
                 <label className="block text-md font-semibold mb-1">
                   Select Variables for {form.name} *
                 </label>
@@ -474,20 +564,24 @@ export default function EditNodePage() {
                   {fields.length === 0 ? (
                     <div className="text-gray-400 text-xs">Loading fields...</div>
                   ) : (
-                    fields.map((field) => (
-                      <div key={`${formId}-${field.name}`} className="flex items-center py-1">
-                        <input
-                          type="checkbox"
-                          id={`var-${formId}-${field.name}`}
-                          className="mr-2"
-                          checked={selectedVariables[formId]?.includes(field.name)}
-                          onChange={() => handleVariableToggle(formId, field.name)}
-                        />
-                        <label htmlFor={`var-${formId}-${field.name}`} className="text-sm">
-                          {field.label} {field.name !== field.label && `(${field.name})`}
-                        </label>
-                      </div>
-                    ))
+                    fields.map((field, fieldIndex) => {
+                      // Create truly unique key using formId, field name, and index
+                      const uniqueKey = `field-${formId}-${field.name}-${fieldIndex}`;
+                      return (
+                        <div key={uniqueKey} className="flex items-center py-1">
+                          <input
+                            type="checkbox"
+                            id={`var-${uniqueKey}`}
+                            className="mr-2"
+                            checked={selectedVariables[formId]?.includes(field.name)}
+                            onChange={() => handleVariableToggle(formId, field.name)}
+                          />
+                          <label htmlFor={`var-${uniqueKey}`} className="text-sm">
+                            {field.label} {field.name !== field.label && `(${field.name})`}
+                          </label>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
