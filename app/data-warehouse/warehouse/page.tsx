@@ -1021,7 +1021,7 @@ export default function Indicator() {
                           title="Edit"
                           onClick={() =>
                             router.push(
-                              `/data-warehouse/warehouse/new-node?id=${node.id}`
+                              `/data-warehouse/warehouse/new-node/edit-node/${node.id}`
                             )
                           }
                         >

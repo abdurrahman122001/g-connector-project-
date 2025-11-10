@@ -274,6 +274,22 @@ export const createDataNode = async (nodeData: Partial<DataNode>): Promise<DataN
   }
 };
 
+export const getDataNodeById = async (nodeId: string): Promise<DataNode> => {
+  try {
+    const response = await axios.get(`${BASE_URL}/data-warehouse/nodes/${nodeId}`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to fetch data node');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching data node:', error);
+    throw error;
+  }
+};
 
 
 export const updateDataNode = async (id: string, nodeData: Partial<DataNode>): Promise<DataNode> => {
