@@ -89,7 +89,7 @@ function CreateApiPointModal({
   };
 
   const [form, setForm] = useState({
-    slug: "",               // <-- NEW
+    slug: "",
     type: "JSON",
     url: "",
     user: "",
@@ -241,7 +241,12 @@ function CreateApiPointModal({
 
     // Basic required fields
     if (!form.slug || !form.type || !form.url || !form.user || !form.passkey) {
-      setError("Type, URL, Username and Passkey are required.");
+      setError("Slug, Type, URL, Username and Passkey are required.");
+      return;
+    }
+
+    if (!nodeId) {
+      setError("Node ID is missing. Please try again.");
       return;
     }
 
@@ -261,14 +266,16 @@ function CreateApiPointModal({
       return;
     }
 
+    // FIXED: Include nodeId in the payload
     const payload = {
-      slug: form.slug,   // <--- include slug
+      slug: form.slug,
       type: form.type,
       url: form.url,
-      user: form.user,          // backend controller maps this to ApiPoint.username
+      user: form.user,
       passkey: form.passkey,
       enabled: Boolean(form.enabled),
-      variables: normalizedVars, // send objects (backend expects this)
+      nodeId: nodeId, // CRITICAL: Add nodeId to payload
+      variables: normalizedVars,
     };
 
     setSubmitting(true);
@@ -305,6 +312,7 @@ function CreateApiPointModal({
       setSubmitting(false);
     }
   };
+
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-30 overflow-y-auto" aria-modal="true" role="dialog">
       <div className="min-h-full w-full p-4 flex items-center justify-center">
@@ -315,6 +323,8 @@ function CreateApiPointModal({
             {nodeName && (
               <p className="text-sm text-gray-500 mt-1">
                 For node: <span className="font-medium text-gray-700">{nodeName}</span>
+                <br />
+                <span className="text-xs">Node ID: {nodeId}</span>
               </p>
             )}
             {loadingFields ? (
@@ -374,7 +384,7 @@ function CreateApiPointModal({
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">User *</label>
+                  <label className="block font-semibold mb-1">Username *</label>
                   <input
                     type="text"
                     className="w-full border rounded px-3 py-2"
@@ -384,7 +394,7 @@ function CreateApiPointModal({
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Passkey *</label>
+                  <label className="block font-semibold mb-1">Password *</label>
                   <input
                     type="password"
                     className="w-full border rounded px-3 py-2"
@@ -403,7 +413,7 @@ function CreateApiPointModal({
                 </div>
               </div>
 
-              {/* Variables editor (UI keeps objects; submit maps to string[]) */}
+              {/* Variables editor */}
               <div>
                 <label className="block font-semibold mb-2">Variables *</label>
                 <div className="max-h-[40vh] overflow-y-auto pr-1">
@@ -468,7 +478,7 @@ function CreateApiPointModal({
                 </div>
               </div>
 
-              {error && <div className="text-red-600">{error}</div>}
+              {error && <div className="text-red-600 bg-red-50 p-3 rounded">{error}</div>}
 
               <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
                 <button
